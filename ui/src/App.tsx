@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FilmIcon, ArrowDownTrayIcon, XCircleIcon, DocumentArrowUpIcon, LinkIcon } from '@heroicons/react/24/outline';
+import { FilmIcon, ArrowDownTrayIcon, XCircleIcon, DocumentArrowUpIcon, LinkIcon, PlayIcon } from '@heroicons/react/24/outline';
 
 type Status = 'idle' | 'converting' | 'done' | 'error';
 type InputMode = 'url' | 'file';
@@ -10,6 +10,7 @@ function App() {
   const [inputMode, setInputMode] = useState<InputMode>('url');
   const [progress, setProgress] = useState<number>(0);
   const [status, setStatus] = useState<Status>('idle');
+  const [viewLink, setViewLink] = useState<string | null>(null);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -68,6 +69,7 @@ function App() {
     setStatus('converting');
     setProgress(0);
     setErrorMessage('');
+    setViewLink(null);
     setDownloadLink(null);
 
     // Check if running in Electron
@@ -108,6 +110,7 @@ function App() {
 
         if (response.ok) {
           setStatus('done');
+          setViewLink(data.viewUrl);
           setDownloadLink(data.downloadUrl);
           setDownloadFilename(data.filename || `converted_video_${Date.now()}.mp4`);
           setProgress(100);
@@ -122,11 +125,18 @@ function App() {
     }
   };
 
+  const handleViewVideo = () => {
+    if (viewLink) {
+      window.open(viewLink, '_blank');
+    }
+  };
+
   const resetState = () => {
     setStatus('idle');
     setM3u8Url('');
     setSelectedFile(null);
     setProgress(0);
+    setViewLink(null);
     setDownloadLink(null);
     setDownloadFilename('');
     setErrorMessage('');
@@ -315,14 +325,27 @@ function App() {
               <div className="bg-green-900 border border-green-700 rounded-md p-4 mb-4">
                 <p className="text-green-300 font-medium">Conversion completed successfully!</p>
               </div>
-              <button
-                onClick={handleDownload}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center space-x-2 mb-3"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5" />
-                <span>Download MP4</span>
-              </button>
+              
+              {/* Action buttons */}
+              <div className="space-y-3 mb-3">
+                <button
+                  onClick={handleViewVideo}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center space-x-2"
+                >
+                  <PlayIcon className="h-5 w-5" />
+                  <span>View Video</span>
+                </button>
+                
+                <button
+                  onClick={handleDownload}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center space-x-2"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                  <span>Download MP4</span>
+                </button>
+              </div>
             </div>
+            
             <button
               onClick={resetState}
               className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"

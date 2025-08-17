@@ -53,15 +53,48 @@ const upload = multer({
   }
 });
 
-// Serve downloads directory statically with proper headers for downloads
+// Serve downloads directory statically
 app.use('/downloads', express.static(downloadsDir, {
   setHeaders: (res, path) => {
-    // Set Content-Disposition header to trigger download instead of opening in browser
-    const filename = require('path').basename(path);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'video/mp4');
+    // Don't set Content-Disposition here - let the endpoint decide
   }
 }));
+
+// Separate endpoint for viewing videos (inline)
+app.get('/view/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(downloadsDir, filename);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  
+  // Set headers for inline viewing
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Content-Disposition', 'inline');
+  res.setHeader('Accept-Ranges', 'bytes');
+  
+  // Send the file for inline viewing
+  res.sendFile(filePath);
+});
+
+// Separate endpoint for downloading videos
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(downloadsDir, filename);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  
+  // Set headers for download
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  
+  // Send the file for download
+  res.sendFile(filePath);
+});
 
 // Helper function to perform FFmpeg conversion
 const performConversion = (inputSource: string, res: Response, isFile: boolean = false) => {
@@ -138,11 +171,13 @@ const performConversion = (inputSource: string, res: Response, isFile: boolean =
         }
       }
       
-      // Construct the full publicly accessible download URL
-      const downloadUrl = `http://localhost:${PORT}/downloads/${outputFilename}`;
+      // Construct the URLs for viewing and downloading
+      const viewUrl = `http://localhost:${PORT}/view/${outputFilename}`;
+      const downloadUrl = `http://localhost:${PORT}/download/${outputFilename}`;
       
       res.json({
         success: true,
+        viewUrl: viewUrl,
         downloadUrl: downloadUrl,
         filename: outputFilename
       });

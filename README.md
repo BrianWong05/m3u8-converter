@@ -86,7 +86,9 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
      - For master playlists, automatically selects the highest quality stream
 3. Click "Convert to MP4" to start the conversion process
 4. Wait for the conversion to complete (progress will be shown)
-5. Click "Download MP4" to download the converted file
+5. Choose your next action:
+   - **View Video**: Preview the converted video in your browser
+   - **Download MP4**: Download the converted file to your device
 6. Use "Convert Another File" to reset and convert additional files
 
 ## Features
@@ -94,6 +96,8 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
 - **Modern UI**: Dark theme built with Tailwind CSS and Heroicons with tabbed interface
 - **Dual Input Methods**: Support for both M3U8 URLs and file uploads
 - **Master Playlist Support**: Automatically detects and converts the highest quality stream from master playlists
+- **Video Preview**: View converted videos in browser before downloading
+- **Smart Downloads**: Proper file downloads with fallback methods for browser compatibility
 - **Real-time Progress**: Visual progress indication during conversion
 - **Error Handling**: Comprehensive error messages and validation
 - **File Validation**: Automatic validation of uploaded M3U8 files
@@ -158,6 +162,18 @@ Converts an uploaded M3U8 file to MP4 format.
   "error": "Conversion failed: [error message]"
 }
 ```
+
+### GET /view/:filename
+
+Serves a video file for inline viewing in the browser.
+
+**Response:** Video file with `Content-Disposition: inline` header for browser playback.
+
+### GET /download/:filename
+
+Serves a video file for download.
+
+**Response:** Video file with `Content-Disposition: attachment` header to trigger download.
 
 ### GET /health
 
