@@ -1,0 +1,24 @@
+{
+  "name": "m3u8-converter-backend",
+  "version": "1.0.0",
+  "description": "Backend server for M3U8 to MP4 conversion",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "fluent-ffmpeg": "^2.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2",
+    "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.13",
+    "@types/fluent-ffmpeg": "^2.1.21",
+    "@types/node": "^20.3.1",
+    "ts-node-dev": "^2.0.0"
+  }
+}
