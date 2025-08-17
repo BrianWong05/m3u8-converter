@@ -11,6 +11,7 @@ function App() {
   const [progress, setProgress] = useState<number>(0);
   const [status, setStatus] = useState<Status>('idle');
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
+  const [downloadFilename, setDownloadFilename] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,6 +109,7 @@ function App() {
         if (response.ok) {
           setStatus('done');
           setDownloadLink(data.downloadUrl);
+          setDownloadFilename(data.filename || `converted_video_${Date.now()}.mp4`);
           setProgress(100);
         } else {
           setStatus('error');
@@ -126,15 +128,55 @@ function App() {
     setSelectedFile(null);
     setProgress(0);
     setDownloadLink(null);
+    setDownloadFilename('');
     setErrorMessage('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleDownload = () => {
-    if (downloadLink) {
-      window.open(downloadLink, '_blank');
+  const handleDownload = async () => {
+    if (!downloadLink) return;
+
+    try {
+      // Fetch the file as a blob
+      const response = await fetch(downloadLink);
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = downloadFilename || `converted_video_${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: try direct link download
+      try {
+        const a = document.createElement('a');
+        a.href = downloadLink;
+        a.download = downloadFilename || `converted_video_${Date.now()}.mp4`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (fallbackError) {
+        console.error('Fallback download failed:', fallbackError);
+        // Last resort: open in new tab
+        window.open(downloadLink, '_blank');
+      }
     }
   };
 

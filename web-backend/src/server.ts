@@ -53,8 +53,15 @@ const upload = multer({
   }
 });
 
-// Serve downloads directory statically
-app.use('/downloads', express.static(downloadsDir));
+// Serve downloads directory statically with proper headers for downloads
+app.use('/downloads', express.static(downloadsDir, {
+  setHeaders: (res, path) => {
+    // Set Content-Disposition header to trigger download instead of opening in browser
+    const filename = require('path').basename(path);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'video/mp4');
+  }
+}));
 
 // Helper function to perform FFmpeg conversion
 const performConversion = (inputSource: string, res: Response, isFile: boolean = false) => {
