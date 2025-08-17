@@ -6,17 +6,17 @@ services:
       dockerfile: Dockerfile
     container_name: m3u8-converter-backend
     ports:
-      - "4000:4000"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
       - NODE_ENV=production
-      - PORT=4000
+      - PORT=${BACKEND_PORT}
     volumes:
       # Mount volumes for temporary files
       - backend_uploads:/tmp/uploads
       - backend_downloads:/tmp/downloads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${BACKEND_PORT}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -29,7 +29,9 @@ services:
       dockerfile: Dockerfile
     container_name: m3u8-converter-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT}:80"
+    environment:
+      - VITE_BACKEND_API_URL=${BACKEND_API_URL}
     depends_on:
       - backend
     restart: unless-stopped

@@ -61,6 +61,24 @@ You can run this application either with Docker (recommended) or manually with N
 - Docker (version 20.10 or higher)
 - Docker Compose (version 2.0 or higher)
 
+#### Environment Configuration
+
+Copy the example environment file and customize as needed:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` to configure ports and API URL:
+```bash
+# Port Configuration
+FRONTEND_PORT=3000
+FRONTEND_DEV_PORT=5173
+BACKEND_PORT=4000
+
+# API Configuration
+BACKEND_API_URL=http://localhost:4000
+```
+
 #### Quick Start
 
 **Production Mode:**
@@ -74,8 +92,8 @@ docker-compose -f docker-compose.dev.yml up --build
 ```
 
 **Access the application:**
-- Frontend: http://localhost:3000 (production) or http://localhost:5173 (development)
-- Backend API: http://localhost:4000
+- Frontend: http://localhost:${FRONTEND_PORT} (production) or http://localhost:${FRONTEND_DEV_PORT} (development)
+- Backend API: ${BACKEND_API_URL}
 
 **Stop services:**
 ```bash

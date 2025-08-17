@@ -39,7 +39,8 @@ export const useConversion = () => {
   const pollProgress = (conversionId: string) => {
     const poll = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/progress/${conversionId}`);
+        const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:4000';
+        const response = await fetch(`${backendUrl}/progress/${conversionId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch progress');
         }
@@ -145,9 +146,11 @@ export const useConversion = () => {
         
         let response;
         
+        const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:4000';
+        
         if (inputMode === 'url') {
           // URL conversion
-          response = await fetch('http://localhost:4000/convert', {
+          response = await fetch(`${backendUrl}/convert`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -159,7 +162,7 @@ export const useConversion = () => {
           const formData = new FormData();
           formData.append('m3u8File', selectedFile!);
           
-          response = await fetch('http://localhost:4000/convert-file', {
+          response = await fetch(`${backendUrl}/convert-file`, {
             method: 'POST',
             body: formData,
           });
@@ -176,8 +179,9 @@ export const useConversion = () => {
           setErrorMessage(data.error || 'Conversion failed');
         }
       } catch (error) {
+        const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:4000';
         setStatus('error');
-        setErrorMessage('Failed to connect to server. Make sure the backend is running on port 4000.');
+        setErrorMessage(`Failed to connect to server. Make sure the backend is running at ${backendUrl}.`);
       }
     }
   };

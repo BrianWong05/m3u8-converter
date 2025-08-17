@@ -6,10 +6,10 @@ services:
       dockerfile: Dockerfile.dev
     container_name: m3u8-converter-backend-dev
     ports:
-      - "4000:4000"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
       - NODE_ENV=development
-      - PORT=4000
+      - PORT=${BACKEND_PORT}
     volumes:
       # Mount source code for hot reloading
       - ./web-backend/src:/app/src
@@ -28,9 +28,10 @@ services:
       dockerfile: Dockerfile.dev
     container_name: m3u8-converter-frontend-dev
     ports:
-      - "5173:5173"
+      - "${FRONTEND_DEV_PORT}:5173"
     environment:
       - NODE_ENV=development
+      - VITE_BACKEND_API_URL=${BACKEND_API_URL}
     volumes:
       # Mount source code for hot reloading
       - ./ui/src:/app/src
