@@ -216,8 +216,8 @@ app.post('/convert', async (req, res) => {
   }
 });
 
-// Helper function to validate M3U8 file content
-const validateM3U8File = (filePath: string): { valid: boolean; error?: string } => {
+// Helper function to validate and process M3U8 file content
+const validateM3U8File = (filePath: string): { valid: boolean; error?: string; isMasterPlaylist?: boolean; bestStreamUrl?: string } => {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     
@@ -226,13 +226,62 @@ const validateM3U8File = (filePath: string): { valid: boolean; error?: string } 
       return { valid: false, error: 'Invalid M3U8 file: must start with #EXTM3U' };
     }
     
-    // Check if file has any segment references
-    const hasSegments = content.includes('#EXTINF') || content.includes('.ts') || content.includes('.m4s');
-    if (!hasSegments) {
-      return { valid: false, error: 'Invalid M3U8 file: no media segments found' };
-    }
+    // Check if this is a master playlist (contains #EXT-X-STREAM-INF)
+    const isMasterPlaylist = content.includes('#EXT-X-STREAM-INF');
     
-    return { valid: true };
+    if (isMasterPlaylist) {
+      // Extract stream URLs from master playlist
+      const lines = content.split('\n');
+      const streams: { bandwidth: number; resolution?: string; url: string }[] = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('#EXT-X-STREAM-INF:')) {
+          // Parse bandwidth and resolution
+          const bandwidthMatch = line.match(/BANDWIDTH=(\d+)/);
+          const resolutionMatch = line.match(/RESOLUTION=([^,]+)/);
+          
+          // Next non-comment line should be the URL
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim().startsWith('#')) {
+            j++;
+          }
+          
+          if (j < lines.length && lines[j].trim()) {
+            streams.push({
+              bandwidth: bandwidthMatch ? parseInt(bandwidthMatch[1]) : 0,
+              resolution: resolutionMatch ? resolutionMatch[1] : undefined,
+              url: lines[j].trim()
+            });
+          }
+        }
+      }
+      
+      if (streams.length === 0) {
+        return { valid: false, error: 'Master playlist found but no valid streams detected' };
+      }
+      
+      // Select the highest quality stream (highest bandwidth)
+      const bestStream = streams.reduce((best, current) => 
+        current.bandwidth > best.bandwidth ? current : best
+      );
+      
+      console.log(`Master playlist detected with ${streams.length} streams. Selected: ${bestStream.resolution || 'unknown resolution'} (${bestStream.bandwidth} bps)`);
+      
+      return { 
+        valid: true, 
+        isMasterPlaylist: true, 
+        bestStreamUrl: bestStream.url 
+      };
+    } else {
+      // Check if file has direct media segments
+      const hasSegments = content.includes('#EXTINF') || content.includes('.ts') || content.includes('.m4s');
+      if (!hasSegments) {
+        return { valid: false, error: 'Invalid M3U8 file: no media segments found' };
+      }
+      
+      return { valid: true, isMasterPlaylist: false };
+    }
   } catch (error) {
     return { valid: false, error: 'Cannot read uploaded file' };
   }
@@ -260,7 +309,23 @@ app.post('/convert-file', upload.single('m3u8File'), async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    performConversion(uploadedFilePath, res, true);
+    // Handle master playlists by using the best stream URL
+    if (validation.isMasterPlaylist && validation.bestStreamUrl) {
+      console.log('Converting master playlist using best stream URL:', validation.bestStreamUrl);
+      
+      // Clean up the uploaded master playlist file since we're using the URL
+      try {
+        fs.unlinkSync(uploadedFilePath);
+      } catch (cleanupErr) {
+        console.error('Error cleaning up master playlist file:', cleanupErr);
+      }
+      
+      // Use the selected stream URL for conversion (treat as URL, not file)
+      performConversion(validation.bestStreamUrl, res, false);
+    } else {
+      // Direct media playlist - use the file
+      performConversion(uploadedFilePath, res, true);
+    }
 
   } catch (error) {
     console.error('Server error:', error);

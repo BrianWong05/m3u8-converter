@@ -82,6 +82,8 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
 2. Choose your input method:
    - **URL Tab**: Enter a valid M3U8 URL in the input field
    - **Upload File Tab**: Click to select and upload an M3U8 playlist file from your computer
+     - Supports both direct media playlists and master playlists
+     - For master playlists, automatically selects the highest quality stream
 3. Click "Convert to MP4" to start the conversion process
 4. Wait for the conversion to complete (progress will be shown)
 5. Click "Download MP4" to download the converted file
@@ -91,6 +93,7 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
 
 - **Modern UI**: Dark theme built with Tailwind CSS and Heroicons with tabbed interface
 - **Dual Input Methods**: Support for both M3U8 URLs and file uploads
+- **Master Playlist Support**: Automatically detects and converts the highest quality stream from master playlists
 - **Real-time Progress**: Visual progress indication during conversion
 - **Error Handling**: Comprehensive error messages and validation
 - **File Validation**: Automatic validation of uploaded M3U8 files
