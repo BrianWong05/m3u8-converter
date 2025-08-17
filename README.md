@@ -9,7 +9,20 @@ m3u8-converter/
 ├── ui/                     # Vite + React + TypeScript Frontend
 │   ├── public/
 │   ├── src/
-│   │   ├── App.tsx        # Main React component
+│   │   ├── components/    # Reusable React components
+│   │   │   ├── Header.tsx           # App header with title and icon
+│   │   │   ├── InputTabs.tsx        # URL/File input mode tabs
+│   │   │   ├── UrlInput.tsx         # M3U8 URL input field
+│   │   │   ├── FileUpload.tsx       # File upload component
+│   │   │   ├── ConvertButton.tsx    # Convert action button
+│   │   │   ├── ProgressView.tsx     # Conversion progress display
+│   │   │   ├── SuccessView.tsx      # Success state with view/download
+│   │   │   ├── ErrorView.tsx        # Error state display
+│   │   │   ├── IdleView.tsx         # Main input interface
+│   │   │   ├── useConversion.ts     # Custom hook for conversion logic
+│   │   │   ├── types.ts             # TypeScript type definitions
+│   │   │   └── index.ts             # Component exports
+│   │   ├── App.tsx        # Main React component (refactored)
 │   │   ├── index.css      # Tailwind CSS styles
 │   │   ├── main.tsx       # React entry point
 │   │   └── types.d.ts     # TypeScript definitions for Electron integration
