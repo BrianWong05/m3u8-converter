@@ -79,7 +79,9 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
 ## Usage
 
 1. Open your browser and navigate to the frontend URL (typically `http://localhost:5173`)
-2. Enter a valid M3U8 URL in the input field
+2. Choose your input method:
+   - **URL Tab**: Enter a valid M3U8 URL in the input field
+   - **Upload File Tab**: Click to select and upload an M3U8 playlist file from your computer
 3. Click "Convert to MP4" to start the conversion process
 4. Wait for the conversion to complete (progress will be shown)
 5. Click "Download MP4" to download the converted file
@@ -87,12 +89,15 @@ The frontend will start on `http://localhost:5173` (or another port if 5173 is b
 
 ## Features
 
-- **Modern UI**: Dark theme built with Tailwind CSS and Heroicons
+- **Modern UI**: Dark theme built with Tailwind CSS and Heroicons with tabbed interface
+- **Dual Input Methods**: Support for both M3U8 URLs and file uploads
 - **Real-time Progress**: Visual progress indication during conversion
 - **Error Handling**: Comprehensive error messages and validation
+- **File Validation**: Automatic validation of uploaded M3U8 files
 - **Electron Ready**: Frontend is prepared for future Electron integration
 - **Fast Conversion**: Uses FFmpeg with stream copying (no re-encoding) for speed
 - **Temporary Storage**: Files are stored in system temp directory and served statically
+- **Automatic Cleanup**: Uploaded files are automatically cleaned up after conversion
 
 ## API Endpoints
 
@@ -107,6 +112,31 @@ Converts an M3U8 URL to MP4 format.
   "m3u8Url": "https://example.com/playlist.m3u8"
 }
 ```
+
+**Success Response:**
+
+```json
+{
+  "success": true,
+  "downloadUrl": "http://localhost:4000/downloads/converted_1234567890.mp4",
+  "filename": "converted_1234567890.mp4"
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "error": "Conversion failed: [error message]"
+}
+```
+
+### POST /convert-file
+
+Converts an uploaded M3U8 file to MP4 format.
+
+**Request Body:** `multipart/form-data`
+- `m3u8File`: The M3U8 file to upload (max 10MB)
 
 **Success Response:**
 
