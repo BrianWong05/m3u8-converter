@@ -11,9 +11,9 @@ export const useConversion = () => {
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [conversionId, setConversionId] = useState<string | null>(null);
+  const [, setConversionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
 
   // Set up Electron event listeners for future integration
   useEffect(() => {

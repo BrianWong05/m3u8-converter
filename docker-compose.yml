@@ -1,0 +1,50 @@
+services:
+  # Backend service
+  backend:
+    build:
+      context: ./web-backend
+      dockerfile: Dockerfile
+    container_name: m3u8-converter-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      # Mount volumes for temporary files
+      - backend_uploads:/tmp/uploads
+      - backend_downloads:/tmp/downloads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: m3u8-converter-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  backend_uploads:
+    driver: local
+  backend_downloads:
+    driver: local
+
+networks:
+  default:
+    name: m3u8-converter-network

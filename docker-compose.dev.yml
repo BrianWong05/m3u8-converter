@@ -1,0 +1,56 @@
+services:
+  # Backend service for development
+  backend:
+    build:
+      context: ./web-backend
+      dockerfile: Dockerfile.dev
+    container_name: m3u8-converter-backend-dev
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+    volumes:
+      # Mount source code for hot reloading
+      - ./web-backend/src:/app/src
+      - ./web-backend/package.json:/app/package.json
+      - ./web-backend/tsconfig.json:/app/tsconfig.json
+      # Mount volumes for temporary files
+      - backend_uploads:/tmp/uploads
+      - backend_downloads:/tmp/downloads
+    restart: unless-stopped
+    command: npm run dev
+
+  # Frontend service for development
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile.dev
+    container_name: m3u8-converter-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      # Mount source code for hot reloading
+      - ./ui/src:/app/src
+      - ./ui/public:/app/public
+      - ./ui/package.json:/app/package.json
+      - ./ui/vite.config.ts:/app/vite.config.ts
+      - ./ui/tsconfig.json:/app/tsconfig.json
+      - ./ui/tailwind.config.js:/app/tailwind.config.js
+      - ./ui/postcss.config.js:/app/postcss.config.js
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: npm run dev
+
+volumes:
+  backend_uploads:
+    driver: local
+  backend_downloads:
+    driver: local
+
+networks:
+  default:
+    name: m3u8-converter-dev-network

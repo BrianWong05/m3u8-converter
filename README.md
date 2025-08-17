@@ -53,21 +53,54 @@ Before running this project, make sure you have:
 
 ## Installation & Setup
 
-### 1. Install Frontend Dependencies
+You can run this application either with Docker (recommended) or manually with Node.js.
+
+### Option 1: Docker Setup (Recommended)
+
+#### Prerequisites
+- Docker (version 20.10 or higher)
+- Docker Compose (version 2.0 or higher)
+
+#### Quick Start
+
+**Production Mode:**
+```bash
+docker-compose up --build
+```
+
+**Development Mode:**
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+**Access the application:**
+- Frontend: http://localhost:3000 (production) or http://localhost:5173 (development)
+- Backend API: http://localhost:4000
+
+**Stop services:**
+```bash
+docker-compose down
+```
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+### Option 2: Manual Setup
+
+#### 1. Install Frontend Dependencies
 
 ```bash
 cd ui
 npm install
 ```
 
-### 2. Install Backend Dependencies
+#### 2. Install Backend Dependencies
 
 ```bash
 cd ../web-backend
 npm install
 ```
 
-## Running the Application
+## Running the Application (Manual)
 
 ### 1. Start the Backend Server
 
