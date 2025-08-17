@@ -2,6 +2,12 @@
 
 A full-stack application for converting M3U8 video streams to downloadable MP4 files, built with React (frontend) and Node.js (backend).
 
+## 🌐 Live Demo
+
+**Try it online:** [https://brianwong05.github.io/m3u8-converter/](https://brianwong05.github.io/m3u8-converter/)
+
+![M3U8 to MP4 Converter Demo](converter-demo.jpg)
+
 ## Project Structure
 
 ```
@@ -58,17 +64,20 @@ You can run this application either with Docker (recommended) or manually with N
 ### Option 1: Docker Setup (Recommended)
 
 #### Prerequisites
+
 - Docker (version 20.10 or higher)
 - Docker Compose (version 2.0 or higher)
 
 #### Environment Configuration
 
 Copy the example environment file and customize as needed:
+
 ```bash
 cp .env.example .env
 ```
 
 Edit `.env` to configure ports and API URL:
+
 ```bash
 # Port Configuration
 FRONTEND_PORT=3000
@@ -82,20 +91,24 @@ BACKEND_API_URL=http://localhost:4000
 #### Quick Start
 
 **Production Mode:**
+
 ```bash
 docker-compose up --build
 ```
 
 **Development Mode:**
+
 ```bash
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
 **Access the application:**
+
 - Frontend: http://localhost:${FRONTEND_PORT} (production) or http://localhost:${FRONTEND_DEV_PORT} (development)
 - Backend API: ${BACKEND_API_URL}
 
 **Stop services:**
+
 ```bash
 docker-compose down
 ```
@@ -207,6 +220,7 @@ Converts an M3U8 URL to MP4 format.
 Converts an uploaded M3U8 file to MP4 format.
 
 **Request Body:** `multipart/form-data`
+
 - `m3u8File`: The M3U8 file to upload (max 10MB)
 
 **Success Response:**
