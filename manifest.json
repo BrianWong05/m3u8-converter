@@ -1,0 +1,22 @@
+{
+  "name": "M3U8 to MP4 Converter",
+  "short_name": "M3U8 Converter",
+  "description": "Convert M3U8 streaming video files to downloadable MP4 format",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
