@@ -11,7 +11,9 @@ export const useConversion = () => {
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [conversionId, setConversionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Set up Electron event listeners for future integration
   useEffect(() => {
@@ -32,6 +34,60 @@ export const useConversion = () => {
       });
     }
   }, []);
+
+  // Function to poll progress
+  const pollProgress = (conversionId: string) => {
+    const poll = async () => {
+      try {
+        const response = await fetch(`http://localhost:4000/progress/${conversionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch progress');
+        }
+        
+        const data = await response.json();
+        setProgress(data.progress);
+        
+        if (data.status === 'completed') {
+          setStatus('done');
+          setViewLink(data.viewUrl);
+          setDownloadLink(data.downloadUrl);
+          setDownloadFilename(data.filename || `converted_video_${Date.now()}.mp4`);
+          setProgress(100);
+          
+          // Clear polling interval
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        } else if (data.status === 'error') {
+          setStatus('error');
+          setErrorMessage(data.error || 'Conversion failed');
+          
+          // Clear polling interval
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        }
+      } catch (error) {
+        console.error('Error polling progress:', error);
+        setStatus('error');
+        setErrorMessage('Failed to get conversion progress');
+        
+        // Clear polling interval
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      }
+    };
+    
+    // Start polling every 1 second
+    progressIntervalRef.current = setInterval(poll, 1000);
+    
+    // Poll immediately
+    poll();
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,6 +137,12 @@ export const useConversion = () => {
     } else {
       // Use web backend
       try {
+        // Clear any existing polling interval
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        
         let response;
         
         if (inputMode === 'url') {
@@ -105,12 +167,10 @@ export const useConversion = () => {
 
         const data = await response.json();
 
-        if (response.ok) {
-          setStatus('done');
-          setViewLink(data.viewUrl);
-          setDownloadLink(data.downloadUrl);
-          setDownloadFilename(data.filename || `converted_video_${Date.now()}.mp4`);
-          setProgress(100);
+        if (response.ok && data.conversionId) {
+          // Start polling for progress
+          setConversionId(data.conversionId);
+          pollProgress(data.conversionId);
         } else {
           setStatus('error');
           setErrorMessage(data.error || 'Conversion failed');
@@ -174,6 +234,12 @@ export const useConversion = () => {
   };
 
   const resetState = () => {
+    // Clear polling interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
     setStatus('idle');
     setM3u8Url('');
     setSelectedFile(null);
@@ -182,10 +248,20 @@ export const useConversion = () => {
     setDownloadLink(null);
     setDownloadFilename('');
     setErrorMessage('');
+    setConversionId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   const state: ConversionState = {
     m3u8Url,

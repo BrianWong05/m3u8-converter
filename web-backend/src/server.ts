@@ -96,8 +96,154 @@ app.get('/download/:filename', (req, res) => {
   res.sendFile(filePath);
 });
 
+// Store active conversions for progress tracking
+interface ConversionData {
+  progress: number;
+  status: string;
+  viewUrl?: string;
+  downloadUrl?: string;
+  filename?: string;
+  error?: string;
+}
+
+const activeConversions = new Map<string, ConversionData>();
+
+// Async version for progress tracking
+const performConversionAsync = async (inputSource: string, isFile: boolean = false, conversionId: string) => {
+  // Generate unique filename with timestamp
+  const timestamp = Date.now();
+  const outputFilename = `converted_${timestamp}.mp4`;
+  const outputPath = path.join(downloadsDir, outputFilename);
+
+  console.log(`Starting conversion of: ${inputSource}`);
+  console.log(`Output path: ${outputPath}`);
+
+  // Validate input file exists if it's a file
+  if (isFile && !fs.existsSync(inputSource)) {
+    console.error('Input file does not exist:', inputSource);
+    activeConversions.set(conversionId, { progress: 0, status: 'error' });
+    return;
+  }
+
+  // Ensure output directory exists and is writable
+  try {
+    if (!fs.existsSync(downloadsDir)) {
+      fs.mkdirSync(downloadsDir, { recursive: true });
+    }
+    // Test write permissions
+    const testFile = path.join(downloadsDir, `test_${timestamp}.tmp`);
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+  } catch (error) {
+    console.error('Cannot write to downloads directory:', error);
+    activeConversions.set(conversionId, { progress: 0, status: 'error' });
+    return;
+  }
+
+  const ffmpegCommand = ffmpeg(inputSource);
+
+  // Add user agent for URL inputs
+  if (!isFile) {
+    ffmpegCommand.inputOptions([
+      '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    ]);
+  } else {
+    // For file inputs, add some additional options to handle various M3U8 formats
+    ffmpegCommand.inputOptions([
+      '-protocol_whitelist', 'file,http,https,tcp,tls,crypto'
+    ]);
+  }
+
+  ffmpegCommand
+    .outputOptions([
+      '-c', 'copy',  // Copy streams without re-encoding for speed
+      '-avoid_negative_ts', 'make_zero',  // Handle timestamp issues
+      '-fflags', '+genpts',  // Generate presentation timestamps
+      '-movflags', '+faststart'  // Optimize for web playback
+    ])
+    .output(outputPath)
+    .on('start', (commandLine) => {
+      console.log('FFmpeg command: ' + commandLine);
+      activeConversions.set(conversionId, { progress: 0, status: 'converting' });
+    })
+    .on('progress', (progress) => {
+      const progressPercent = Math.round(progress.percent || 0);
+      console.log(`Processing: ${progressPercent}% done`);
+      
+      activeConversions.set(conversionId, { 
+        progress: progressPercent, 
+        status: 'converting' 
+      });
+    })
+    .on('end', () => {
+      console.log('Conversion finished successfully');
+      
+      // Update progress to completed with file info
+      const viewUrl = `http://localhost:${PORT}/view/${outputFilename}`;
+      const downloadUrl = `http://localhost:${PORT}/download/${outputFilename}`;
+      
+      activeConversions.set(conversionId, { 
+        progress: 100, 
+        status: 'completed',
+        viewUrl: viewUrl,
+        downloadUrl: downloadUrl,
+        filename: outputFilename
+      });
+      
+      // Clean up uploaded file if it was a file upload
+      if (isFile && fs.existsSync(inputSource)) {
+        try {
+          fs.unlinkSync(inputSource);
+          console.log('Cleaned up uploaded file:', inputSource);
+        } catch (cleanupErr) {
+          console.error('Error cleaning up uploaded file:', cleanupErr);
+        }
+      }
+      
+      // Clean up after a delay to allow final progress fetch
+      setTimeout(() => {
+        activeConversions.delete(conversionId);
+      }, 300000); // 5 minutes
+    })
+    .on('error', (err: any) => {
+      console.error('FFmpeg error:', err.message);
+      console.error('FFmpeg stderr:', err.stderr || 'No stderr available');
+      
+      // Update progress to error state
+      activeConversions.set(conversionId, { 
+        progress: 0, 
+        status: 'error',
+        error: err.message
+      });
+      
+      // Clean up partial output file if it exists
+      if (fs.existsSync(outputPath)) {
+        try {
+          fs.unlinkSync(outputPath);
+        } catch (cleanupErr) {
+          console.error('Error cleaning up partial file:', cleanupErr);
+        }
+      }
+      
+      // Clean up uploaded file if it was a file upload
+      if (isFile && fs.existsSync(inputSource)) {
+        try {
+          fs.unlinkSync(inputSource);
+        } catch (cleanupErr) {
+          console.error('Error cleaning up uploaded file:', cleanupErr);
+        }
+      }
+      
+      // Clean up after a delay
+      setTimeout(() => {
+        activeConversions.delete(conversionId);
+      }, 30000); // 30 seconds
+    })
+    .run();
+};
+
 // Helper function to perform FFmpeg conversion
-const performConversion = (inputSource: string, res: Response, isFile: boolean = false) => {
+const performConversion = (inputSource: string, res: Response, isFile: boolean = false, conversionId?: string) => {
   // Generate unique filename with timestamp
   const timestamp = Date.now();
   const outputFilename = `converted_${timestamp}.mp4`;
@@ -156,10 +302,31 @@ const performConversion = (inputSource: string, res: Response, isFile: boolean =
       console.log('FFmpeg command: ' + commandLine);
     })
     .on('progress', (progress) => {
-      console.log(`Processing: ${progress.percent}% done`);
+      const progressPercent = Math.round(progress.percent || 0);
+      console.log(`Processing: ${progressPercent}% done`);
+      
+      // Update progress in activeConversions if conversionId is provided
+      if (conversionId) {
+        activeConversions.set(conversionId, { 
+          progress: progressPercent, 
+          status: 'converting' 
+        });
+      }
     })
     .on('end', () => {
       console.log('Conversion finished successfully');
+      
+      // Update progress to completed
+      if (conversionId) {
+        activeConversions.set(conversionId, { 
+          progress: 100, 
+          status: 'completed' 
+        });
+        // Clean up after a delay to allow final progress fetch
+        setTimeout(() => {
+          activeConversions.delete(conversionId);
+        }, 30000); // 30 seconds
+      }
       
       // Clean up uploaded file if it was a file upload
       if (isFile && fs.existsSync(inputSource)) {
@@ -212,6 +379,18 @@ const performConversion = (inputSource: string, res: Response, isFile: boolean =
         }
       }
       
+      // Update progress to error state
+      if (conversionId) {
+        activeConversions.set(conversionId, { 
+          progress: 0, 
+          status: 'error' 
+        });
+        // Clean up after a delay
+        setTimeout(() => {
+          activeConversions.delete(conversionId);
+        }, 30000); // 30 seconds
+      }
+      
       // Clean up uploaded file if it was a file upload
       if (isFile && fs.existsSync(inputSource)) {
         try {
@@ -248,7 +427,21 @@ app.post('/convert', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or missing m3u8Url' });
     }
 
-    performConversion(m3u8Url, res, false);
+    // Generate unique conversion ID
+    const conversionId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Initialize progress tracking
+    activeConversions.set(conversionId, { progress: 0, status: 'starting' });
+
+    // Return conversion ID immediately for progress tracking
+    res.json({
+      success: true,
+      conversionId: conversionId,
+      message: 'Conversion started'
+    });
+
+    // Start conversion asynchronously
+    performConversionAsync(m3u8Url, false, conversionId);
 
   } catch (error) {
     console.error('Server error:', error);
@@ -351,6 +544,19 @@ app.post('/convert-file', upload.single('m3u8File'), async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
+    // Generate unique conversion ID
+    const conversionId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Initialize progress tracking
+    activeConversions.set(conversionId, { progress: 0, status: 'starting' });
+
+    // Return conversion ID immediately for progress tracking
+    res.json({
+      success: true,
+      conversionId: conversionId,
+      message: 'Conversion started'
+    });
+
     // Handle master playlists by using the best stream URL
     if (validation.isMasterPlaylist && validation.bestStreamUrl) {
       console.log('Converting master playlist using best stream URL:', validation.bestStreamUrl);
@@ -363,10 +569,10 @@ app.post('/convert-file', upload.single('m3u8File'), async (req, res) => {
       }
       
       // Use the selected stream URL for conversion (treat as URL, not file)
-      performConversion(validation.bestStreamUrl, res, false);
+      performConversionAsync(validation.bestStreamUrl, false, conversionId);
     } else {
       // Direct media playlist - use the file
-      performConversion(uploadedFilePath, res, true);
+      performConversionAsync(uploadedFilePath, true, conversionId);
     }
 
   } catch (error) {
@@ -385,6 +591,35 @@ app.post('/convert-file', upload.single('m3u8File'), async (req, res) => {
       error: 'Internal server error occurred during file conversion'
     });
   }
+});
+
+// Progress tracking endpoint
+app.get('/progress/:conversionId', (req, res) => {
+  const conversionId = req.params.conversionId;
+  const conversion = activeConversions.get(conversionId);
+  
+  if (!conversion) {
+    return res.status(404).json({ error: 'Conversion not found' });
+  }
+  
+  const response: any = {
+    progress: conversion.progress,
+    status: conversion.status
+  };
+  
+  // Add additional data if conversion is completed
+  if (conversion.status === 'completed') {
+    response.viewUrl = conversion.viewUrl;
+    response.downloadUrl = conversion.downloadUrl;
+    response.filename = conversion.filename;
+  }
+  
+  // Add error message if conversion failed
+  if (conversion.status === 'error' && conversion.error) {
+    response.error = conversion.error;
+  }
+  
+  res.json(response);
 });
 
 // Health check endpoint
