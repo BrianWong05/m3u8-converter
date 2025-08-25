@@ -6,8 +6,6 @@ import fs from "fs";
 import os from "os";
 import multer from "multer";
 
-ffmpeg.setFfmpegPath("/usr/bin/ffmpeg");
-
 const app = express();
 const PORT = process.env.PORT || 4000;
 

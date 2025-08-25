@@ -85,7 +85,7 @@ FRONTEND_DEV_PORT=5173
 BACKEND_PORT=4000
 
 # API Configuration
-BACKEND_API_URL=http://localhost:4000
+BACKEND_API_URL=https://m3u8-converter-654878746915.europe-west1.run.app
 ```
 
 #### Quick Start
