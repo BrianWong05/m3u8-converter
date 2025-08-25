@@ -4,6 +4,8 @@ FROM node:18-alpine
 # Install FFmpeg
 # Use apk for Alpine Linux
 RUN apk add --no-cache ffmpeg
+RUN which ffmpeg
+RUN ffmpeg -version
 
 # Set working directory
 WORKDIR /app
