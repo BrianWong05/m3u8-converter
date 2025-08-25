@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Install FFmpeg
-RUN apk add --no-cache ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg
 
 # Set working directory
 WORKDIR /app
